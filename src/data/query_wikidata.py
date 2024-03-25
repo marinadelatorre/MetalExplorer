@@ -85,11 +85,6 @@ def parse_item_results(item_query: dict) -> dict:
     return item_result
 
 
-def merge_dicts(dict1, dict2):
-    merged_dict = {**dict1, **dict2}
-    return merged_dict
-
-
 def read_from_file(file_path: str) -> dict:
     """
     Reads data from a JSON file and returns it as a dictionary.
