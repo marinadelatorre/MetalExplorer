@@ -117,7 +117,9 @@ def prepare_song(data: dict, labels: dict) -> list[tuple]:
     song_data = [
     (
         item_code,
-        *list(dict.fromkeys(filter(None, [(labels.get(item_code, ""), item.get("performer_wikidata"), item.get("album_wikidata"), item.get("duration"), item_code) for item in item_data.values()])))  # Unique Instruments (filtered to remove None values and then converted to a list to preserve order)
+        *list(dict.fromkeys(filter(None, [(labels.get(item_code, ""), item.get("performer_wikidata"), \
+                                           item.get("album_wikidata"), item.get("duration"), item_code) \
+                                            for item in item_data.values()])))
     )
     for item_code, item_data in data.items()
     if any(code in (item_data.get(idx, {}).get("item_wikidata", "") for idx in item_data.keys()) for code in (
