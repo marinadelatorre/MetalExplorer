@@ -1,8 +1,11 @@
 import sys
-import json
+import os
+import urllib.error
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 from tqdm import tqdm
+
+from src.utils.utils import read_from_json, write_to_json
 
 endpoint_url = "https://query.wikidata.org/sparql"
 
@@ -85,36 +88,6 @@ def parse_item_results(item_query: dict) -> dict:
     return item_result
 
 
-def read_from_file(file_path: str) -> dict:
-    """
-    Reads data from a JSON file and returns it as a dictionary.
-
-    Args:
-        file_path (str): The path to the JSON file to read.
-
-    Returns:
-        dict: A dictionary containing the data read from the JSON file.
-    """
-    with open(file_path) as json_file:
-        queries = json.load(json_file)
-    return queries
-
-
-def write_to_file(data: dict, file_path: str) -> None:
-    """
-    Writes data to a JSON file.
-
-    Args:
-        data (dict): The dictionary containing the data to write.
-        file_path (str): The path to the JSON file to write.
-
-    Returns:
-        None
-    """
-    with open(file_path, "w") as outfile: 
-        json.dump(data, outfile, indent=2, ensure_ascii=False)
-
-
 def main():
     """
     Orchestrates the data gathering process for the MetalExplorer project.
@@ -127,24 +100,39 @@ def main():
         Run this script to initiate the data gathering process for the MetalExplorer project.
 
     """
-    queries = read_from_file('config/queries.json')
+    queries = read_from_json('config/queries.json')
     genre_results = execute_query(endpoint_url, queries['query_genre'])
     genres = parse_genre_results(genre_results)
 
     assorted_items = {}
     for genre in genres:
-        items = fetch_items_from_query(queries['query_items'], {'genre': genre})
-        items = parse_item_results(items)
-        assorted_items.update(items)
+        try:
+            items = fetch_items_from_query(queries['query_items'], {'genre': genre})
+            items = parse_item_results(items)
+            assorted_items.update(items)
+        except urllib.error.HTTPError as e:
+            print(f"HTTP Error fetching items for genre '{genre}': {e}")
+        except Exception as e:
+            print(f"Error fetching items for genre '{genre}': {e}")
     
-    write_to_file(assorted_items, "raw/metal_item_labels.json")
+    write_to_json(assorted_items, "data/raw/metal_item_labels.json")
 
     item_details = {}
+    save_threshold = 5
     for item, _ in tqdm(assorted_items.items(), total=len(assorted_items)): 
-        details = fetch_item_details(queries['query_details'], item)
-        item_details.update(details)
+        try:
+            details = fetch_item_details(queries['query_details'], item)
+            item_details.update(details)
+            if (len(item_details) / len(assorted_items) * 100) > save_threshold:
+                write_to_json(item_details, "data/raw/metal_item_details_temp.json")
+                save_threshold += 5
+        except urllib.error.HTTPError as e:
+            print(f"HTTP Error fetching details for item '{item}': {e}")
+        except Exception as e:
+            print(f"Error fetching details for item '{item}': {e}")
 
-    write_to_file(item_details, "raw/metal_item_details.json")
+    write_to_json(item_details, "data/raw/metal_item_details.json")
+    os.remove("data/raw/metal_item_labels_temp.json")
 
 
 if __name__ == "__main__":
