@@ -1,4 +1,4 @@
-from src.utils.utils import read_from_json
+from utils.utils import read_from_json
 
 
 def prepare_genre(data: dict) -> list[tuple]:
@@ -35,9 +35,10 @@ def prepare_musician(data: dict, labels: dict) -> list[tuple]:
     (
         item_code, # Wikidata_id
         labels.get(item_code, ""), # Name
-        # Unique Instruments (filtered to remove None values and then converted to a list to preserve order)     
-        *list(dict.fromkeys(filter(None, [item.get("instrument") for item in item_data.values()])))
-    )
+        # Unique Instruments (converted to a list to preserve order) padded with None to ensure 5 instruments     
+        *list(dict.fromkeys(item.get("instrument") for item in item_data.values() if item.get("instrument")))
+        + [None] * (6 - len([item.get("instrument") for item in item_data.values() if item.get("instrument") if item.get("instrument") is not None]))
+    )[:7]
     # Iterate over each item in the items dictionary and
     # Filter items based on the condition
     for item_code, item_data in data.items()
@@ -62,6 +63,7 @@ def prepare_band(data: dict, labels: dict) -> list[tuple]:
     band_data = [
     (
         item_code,
+        # Unique bands (filtered to remove None values and then converted to a list to preserve order)  
         *list(dict.fromkeys(filter(None, [(labels.get(item_code, ""), item.get("country"), item_code, item.get("start"), \
                                            item.get("end")) for item in item_data.values()])))
     )
@@ -89,8 +91,8 @@ def prepare_album(data: dict, labels: dict) -> list[tuple]:
     album_data = [
     (
         item_code,
-        *list(dict.fromkeys(filter(None, [(labels.get(item_code, ""), item.get("performer_wikidata"), \
-                                           item.get("publication_date"), item.get("duration"), item.get("item"), item_code) \
+        *list(dict.fromkeys(filter(None, [(labels.get(item_code, "")[:100], item.get("performer_wikidata"), \
+                                           item.get("publicationdate"), item.get("duration"), item.get("item"), item_code) \
                                             for item in item_data.values()])))
     )
     for item_code, item_data in data.items()
@@ -128,6 +130,16 @@ def prepare_song(data: dict, labels: dict) -> list[tuple]:
 ]
     song_data = [song[1] for song in song_data]
     return song_data
+
+
+def prepare_junction_data(data: dict, keys_1: list, keys_2: list, label: str) -> list[tuple]:
+    keys_2 = set(keys_2 + keys_1)
+    return [
+        (key, inner_dict[f"{label}_wikidata"])
+        for key in keys_2
+        for _, inner_dict in data.get(key, {}).items()
+        if f"{label}_wikidata" in inner_dict
+    ]
 
 
 def main() -> dict:

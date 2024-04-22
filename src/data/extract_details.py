@@ -1,4 +1,4 @@
-from src.utils.utils import read_from_json, write_to_json
+from utils.utils import read_from_json, write_to_json
 
      
 def extract_data(results: list[dict]) -> dict:
@@ -71,9 +71,9 @@ def main():
         
     for data_type, data_dict in collection_dict.items():
         data_dict.pop(data_type, None)
-        write_to_json(f"{data_type}_details.json", "w")
+        write_to_json(data_dict, f"{data_type}_details.json")
 
-    write_to_json("data/processed/detailed_items.json", "w")
+    write_to_json(result_dict, "data/processed/detailed_items.json")
 
 
 if __name__ == "__main__":

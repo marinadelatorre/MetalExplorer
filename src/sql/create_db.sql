@@ -15,7 +15,7 @@ CREATE TABLE musician (
 
 CREATE TABLE band (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(55) NOT NULL,
     country VARCHAR(50),
     wikidata_id VARCHAR(12),
     start_date DATE,
@@ -46,7 +46,7 @@ CREATE TABLE band_genre (
 
 CREATE TABLE album (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
     band_id INT,
     release_date DATE,
     duration INT,
