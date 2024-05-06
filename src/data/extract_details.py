@@ -1,3 +1,4 @@
+import os
 from utils.utils import read_from_json, write_to_json
 
      
@@ -46,6 +47,9 @@ def main():
     obtained from Wikidata, formatted as JSON.
 
     """
+    if not os.path.isdir("data/processed/"):
+        os.mkdir("data/processed/")
+
     raw_results = read_from_json('data/raw/metal_item_details.json')
 
     result_dict = {}
@@ -69,7 +73,6 @@ def main():
             for _, v in value.items():
                 if any("wikidata" in word for word in v.keys()) and data_type in v.keys():
                     data_dict.update(dict(zip(v.get(f"{data_type}_wikidata").keys(), v.get(data_type, {}).keys())))
-                # data_dict[next(iter(v.get(f'{data_type}_wikidata', data_type)))] = v.get(data_type, None)
     
     for data_type, data_dict in collection_dict.items():
         data_dict.pop(None, None)

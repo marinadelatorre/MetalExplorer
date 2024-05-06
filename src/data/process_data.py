@@ -1,6 +1,3 @@
-from utils.utils import read_from_json, write_to_json
-
-
 def format_items(data: dict) -> dict:
     """
     Formats the items dictionary by removing empty dictionaries and converting
@@ -27,31 +24,33 @@ def format_items(data: dict) -> dict:
 
 
 
-def prepare_genre(data: dict) -> list[tuple]:
+def process_genre(data: dict, genres: list) -> list[tuple]:
     """
-    Prepares genre data from the provided dictionary and filters genres containing
+    Processes genre data from the provided dictionary and filters genres containing
     specific keywords.
 
     Args: 
         data (dict): A dictionary containing genre data.
+        genres (list): A list of keywords to filter genres by.
     
     Returns:
         A list of tuples containing filtered genre data formatted for feeding the `genre`
         table in the `metal_db` database.
     """
     genre_data = [(v.lower(), k) for k, v in data.items() if any(
-        gnr in str(v).lower() for gnr in ("rock", "grindcore", "death", "doom", "gothic", "metal", "djent")
+        gnr in str(v).lower() for gnr in genres
         )]
     return genre_data
 
 
-def prepare_musician(data: dict, labels: dict) -> list[tuple]:
+def process_musician(data: dict, labels: dict, musician_codes: list) -> list[tuple]:
     """
-    Prepares musician data from the provided dictionary.
+    Processes musician data from the provided dictionary.
 
     Args: 
         data (dict): A dictionary containing data about musicians.
         labels (dict): A dictionary containing label data for musician IDs.
+        musician_codes (list): A list of musician codes to filter musicians by.
     
     Returns:
         A list of tuples containing filtered musician data formatted for feeding the `musician`
@@ -71,14 +70,14 @@ def prepare_musician(data: dict, labels: dict) -> list[tuple]:
                     # If no instrument, fill with None
                     [None] * 5
                 )
-            ]
+            ][:7]
         )
     # Iterate over each item in the items dictionary
     # and filter items based on the condition
     for item_code, item_data in data.items()
     if any(
         code in (item_data.get(idx, {}).get("item_wikidata", "") for idx in item_data.keys())
-        for code in ("Q1792372", "Q36834", "Q5")
+        for code in musician_codes
     )
     # Extract the instrument value from the inner dictionary
     for instrument in (item.get("instrument") for item in item_data.values())
@@ -86,13 +85,15 @@ def prepare_musician(data: dict, labels: dict) -> list[tuple]:
     return musician_data
 
 
-def prepare_band(data: dict, labels: dict) -> list[tuple]:
+def process_band(data: dict, labels: dict, band_codes: list) -> list[tuple]:
     """
-    Prepares band data from the provided dictionary and filters bands from
+    Processes band data from the provided dictionary and filters bands from
     specific categories.
 
     Args: 
         data (dict): A dictionary containing band data.
+        labels (dict): A dictionary containing label data for band IDs.
+        band_codes (list): A list of band codes to filter bands by.
     
     Returns:
         A list of tuples containing filtered band data formatted for feeding the `band`
@@ -114,20 +115,21 @@ def prepare_band(data: dict, labels: dict) -> list[tuple]:
     )
     for item_code, item_data in data.items()
     for item in item_data.values()
-    if any(code in (item_data.get(idx, {}).get("item_wikidata", "") for idx in item_data.keys()) for code in \
-           ("Q19351429", "Q7623897", "Q1400264", "Q106581115", "Q105756328", "Q56816954", "Q6942541", "Q9212979", 
-            "Q2088357", "Q215380", "Q281643", "Q713200", "Q5741069", "Q7558495", "Q215048", "Q1190668"))
+    if any(code in (item_data.get(idx, {}).get("item_wikidata", "") for idx in item_data.keys()) \
+           for code in band_codes)
 ]
     return band_data
 
 
-def prepare_album(data: dict, labels: dict) -> list[tuple]:
+def process_album(data: dict, labels: dict, album_codes: list) -> list[tuple]:
     """
-    Prepares album data from the provided dictionary and filters albums from
+    Processes album data from the provided dictionary and filters albums from
     specific categories.
 
     Args: 
         data (dict): A dictionary containing album data.
+        labels (dict): A dictionary containing label data for album IDs.
+        album_codes (list): A list of album codes to filter albums by.
     
     Returns:
         A list of tuples containing filtered album data formatted for feeding the `album`
@@ -152,19 +154,21 @@ def prepare_album(data: dict, labels: dict) -> list[tuple]:
     )
     for item_code, item_data in data.items()
     for item in item_data.values()
-    if any(code in (item_data.get(idx, {}).get("item_wikidata", "") for idx in item_data.keys()) for code in \
-           ("Q482994", "Q108352648", "Q20671381", "Q107154516", "Q217199", "Q169930", "Q368281", "Q60713210", "Q208569", "Q10590726"))
+    if any(code in (item_data.get(idx, {}).get("item_wikidata", "") \
+           for idx in item_data.keys()) for code in album_codes)
     ]
     return album_data
 
 
-def prepare_song(data: dict, labels: dict) -> list[tuple]:
+def process_song(data: dict, labels: dict, song_codes: list) -> list[tuple]:
     """
-    Prepares song data from the provided dictionary and filters songs from
+    Processes song data from the provided dictionary and filters songs from
     specific categories.
 
     Args: 
         data (dict): A dictionary containing song data.
+        labels (dict): A dictionary containing label data for song IDs.
+        song_codes (list): A list of song codes to filter songs by.
     
     Returns:
         A list of tuples containing filtered song data formatted for feeding the `song`
@@ -186,44 +190,29 @@ def prepare_song(data: dict, labels: dict) -> list[tuple]:
     )
     for item_code, item_data in data.items()
     for item in item_data.values()
-    if any(code in (item_data.get(idx, {}).get("item_wikidata", "") for idx in item_data.keys()) for code in \
-           ("Q7302866", "Q155171", "Q220935", "Q59847891", "Q4132319", "Q55850593", "Q55850643", "Q193977", 
-           "Q105543609", "Q56599584", "Q134556", "Q108352496", "Q7366", "Q58232557", "Q677466"))
+    if any(code in (item_data.get(idx, {}).get("item_wikidata", "") \
+           for idx in item_data.keys()) for code in song_codes)
     ]
     return song_data
 
 
-def prepare_junction_data(data: dict, keys_1: list, keys_2: list, label: str) -> list[tuple]:
-    keys_2 = set(keys_2 + keys_1)
-    return [
-        (key, inner_dict[f"{label}_wikidata"])
-        for key in keys_2
-        for _, inner_dict in data.get(key, {}).items()
-        if f"{label}_wikidata" in inner_dict
-    ]
-
-
-def main() -> dict:
+def process_junction_data(data: dict, keys_1: list, keys_2: list, label: str) -> list[tuple]:
     """
-    Executes the main functionality of the script.
+    Processes the data from the provided dictionary to create pairs of keys for the junction table.
+
+    Args:
+        data (dict): A dictionary containing the data to process.
+        keys_1 (list): A list of keys to use for the first column of the junction table.
+        keys_2 (list): A list of keys to use for the second column of the junction table.
+        label (list): Label to retrieve data from the inner dictionary.
 
     Returns:
-        dict: A dictionary containing prepared data for genres, musicians, bands, albums, and songs.
+        A list of tuples containing the key pairs for the junction table. 
     """
-
-    genre = read_from_json("data/processed/genre_details.json")
-    items = read_from_json("data/processed/detailed_items.json")
-    labels = read_from_json("data/raw/metal_items.json")
-    items = format_items(items)
-    write_to_json(items, "data/processed/formatted_detailed_items.json")
-    genres = prepare_genre(genre)
-    musicians = prepare_musician(items, labels)
-    bands = prepare_band(items, labels)
-    albums = prepare_album(items, labels)
-    songs = prepare_song(items, labels)
-    
-    return {'genres': genres, 'musicians': musicians, 'bands': bands, 'albums': albums, 'songs': songs}
-
-
-if __name__ == '__main__':
-    main()
+    keys_2 = set(keys_2 + keys_1)
+    junction_data = [(key, inner_dict[f"{label}_wikidata"])
+        for key in keys_2
+        for _, inner_dict in data.get(key, {}).items()
+        if f"{label}_wikidata" in inner_dict]
+    flattened_data = [(str(key), str(value)) for key, values in junction_data for value in (values if isinstance(values, list) else [values])]
+    return flattened_data
