@@ -3,7 +3,7 @@ import mysql.connector
 
 from dotenv import load_dotenv
 
-from data.process_data import (
+from src.data.process_data import (
     format_items,
     process_genre, 
     process_musician, 
@@ -11,7 +11,7 @@ from data.process_data import (
     process_album, 
     process_song,
     process_junction_data)
-from utils.utils import read_from_json
+from src.utils.utils import read_from_json
 
 
 def connect_to_database():
