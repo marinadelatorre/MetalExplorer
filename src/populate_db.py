@@ -3,13 +3,14 @@ import mysql.connector
 
 from dotenv import load_dotenv
 
-from data.prepare_data import (
-    prepare_genre, 
-    prepare_musician, 
-    prepare_band, 
-    prepare_album, 
-    prepare_song,
-    prepare_junction_data)
+from data.process_data import (
+    format_items,
+    process_genre, 
+    process_musician, 
+    process_band, 
+    process_album, 
+    process_song,
+    process_junction_data)
 from utils.utils import read_from_json
 
 
@@ -49,7 +50,7 @@ def fetch_referenced_ids(cursor, table: str, identifiers: list) -> dict:
     sql = f"SELECT wikidata_id, id FROM {table} WHERE wikidata_id IN ({', '.join(['%s'] * len(identifiers))})"
     cursor.execute(sql, tuple(identifiers))
     results = cursor.fetchall()
-    return {result[0]: result[1] for result in results}
+    return {result[0]: str(result[1]) for result in results}
 
 
 def replace_foreign_keys(cursor, table: str, idx: int, data: list[tuple]) -> list[tuple]:
@@ -143,38 +144,38 @@ def main():
     # Read the data from the JSON files
     raw_genre_data = read_from_json('data/processed/genre_details.json')
     items = read_from_json("data/processed/detailed_items.json")
+    items = format_items(items)
     labels = read_from_json("data/raw/metal_items.json")
     performers = read_from_json("data/processed/performer_details.json")
+    data_codes = read_from_json("config/data_codes.json")
 
-    # Prepare the data for the database
-    genre_data = prepare_genre(raw_genre_data)
-    musician_data = prepare_musician(items, labels)
-    band_data = prepare_band(items, labels)
-    album_data = prepare_album(items, labels)
+    # Prepare and inser data into the database
+    genre_data = process_genre(raw_genre_data, data_codes['genres'])   
+    batch_insert(cursor, 'genre', ('genre_name', 'wikidata_id'), genre_data)
+    musician_data = process_musician(items, labels, data_codes['musician_codes'])
+    batch_insert(cursor, 'musician', ('wikidata_id', 'name', 'instrument', 'additional_instrument', 'additional_instrument2', 'additional_instrument3', 'additional_instrument4'), musician_data)
+    band_data = process_band(items, labels, data_codes['band_codes'])
+    batch_insert(cursor, 'band', ('name', 'country', 'wikidata_id', 'start_date', 'end_date'), band_data)
+    album_data = process_album(items, labels, data_codes['album_codes'])
     album_data = replace_foreign_keys(cursor, 'band', 1, album_data)
-    song_data = prepare_song(items, labels)
+    batch_insert(cursor, 'album', ('name', 'band_id', 'release_date', 'duration', 'type', 'wikidata_id'), album_data)
+    song_data = process_song(items, labels, data_codes['song_codes'])
     song_data = replace_foreign_keys(cursor, 'band', 1, song_data)
     song_data = replace_foreign_keys(cursor, 'album', 2, song_data)
-
-    # Insert the data into the database    
-    batch_insert(cursor, 'genre', ('genre_name', 'wikidata_id'), genre_data)
-    batch_insert(cursor, 'musician', ('wikidata_id', 'name', 'instrument', 'additional_instrument', 'additional_instrument2', 'additional_instrument3', 'additional_instrument4'), musician_data)
-    batch_insert(cursor, 'band', ('name', 'country', 'wikidata_id', 'start_date', 'end_date'), band_data)
-    batch_insert(cursor, 'album', ('name', 'band_id', 'release_date', 'duration', 'type', 'wikidata_id'), album_data)
     batch_insert(cursor, 'song', ('name', 'band_id', 'album_id', 'duration', 'wikidata_id'), song_data)
 
     # Prepare the junction tables
     band_wikidata_ids = [band[2] for band in band_data]
     album_wikidata_ids = [album[5] for album in album_data]
 
-    band_membership = prepare_junction_data(items, band_wikidata_ids, list(performers.keys()), label='member')
-    band_genre = prepare_junction_data(items, band_wikidata_ids, list(raw_genre_data.keys()), label='genre')
-    album_genre = prepare_junction_data(items, album_wikidata_ids, list(raw_genre_data.keys()), label='genre')
-
+    band_membership = process_junction_data(items, band_wikidata_ids, list(performers.keys()), label='member')
+    band_genre = process_junction_data(items, band_wikidata_ids, list(raw_genre_data.keys()), label='genre')
+    album_genre = process_junction_data(items, album_wikidata_ids, list(raw_genre_data.keys()), label='genre')
+    
     band_membership = replace_junction_table_fk(cursor, ('band', 'musician'), band_membership)
     band_genre = replace_junction_table_fk(cursor, ('band', 'genre'), band_genre)
     album_genre = replace_junction_table_fk(cursor, ('album', 'genre'), album_genre)
-
+    
     # Insert the junction tables
     batch_insert(cursor, 'band_membership', ('band_id', 'musician_id'), band_membership)
     batch_insert(cursor, 'band_genre', ('band_id', 'genre_id'), band_genre)

@@ -1,3 +1,4 @@
+import os
 from utils.utils import read_from_json, write_to_json
 
      
@@ -13,17 +14,18 @@ def extract_data(results: list[dict]) -> dict:
 
     """
     extracted_data = {}
+    item_data = {}
     for result in results:
-        item_data = {}
+        item_label = result['item']['value'].split('/')[-1]
+        extracted_data[item_label] = item_data
         for label, value in result.items():
             label = label.replace('Label', '') if label.endswith('Label') or \
                 label in ('start', 'end', 'duration', 'publicationdate') else label+'_wikidata'
-            if isinstance(value, dict) and 'value' in value:
-                item_data[label] = value['value'].split('T')[0] if label in ('start', 'end', 'publicationdate') \
-                    else value['value'].split('/')[-1]
+            item_data[label] = {} if label not in item_data.keys() else item_data[label]
+            if isinstance(value, dict) and label in ('start', 'end', 'publicationdate'):
+                item_data[label][value['value'].split('T')[0]] = {}
             else:
-                item_data[label] = value.get('value', None).split('/')[-1]
-        extracted_data[result['item']['value'].split('/')[-1]] = item_data
+                item_data[label][value.get('value', None).split('/')[-1]] = {}
     return extracted_data
 
 
@@ -45,6 +47,9 @@ def main():
     obtained from Wikidata, formatted as JSON.
 
     """
+    if not os.path.isdir("data/processed/"):
+        os.mkdir("data/processed/")
+
     raw_results = read_from_json('data/raw/metal_item_details.json')
 
     result_dict = {}
@@ -66,12 +71,12 @@ def main():
     for data_type, data_dict in collection_dict.items():
         for _, value in result_dict.items():
             for _, v in value.items():
-                data_dict[v.get(f'{data_type}_wikidata', data_type)] = v.get(data_type, None)
-
-        
+                if any("wikidata" in word for word in v.keys()) and data_type in v.keys():
+                    data_dict.update(dict(zip(v.get(f"{data_type}_wikidata").keys(), v.get(data_type, {}).keys())))
+    
     for data_type, data_dict in collection_dict.items():
-        data_dict.pop(data_type, None)
-        write_to_json(data_dict, f"{data_type}_details.json")
+        data_dict.pop(None, None)
+        write_to_json(data_dict, f"data/processed/{data_type}_details.json")
 
     write_to_json(result_dict, "data/processed/detailed_items.json")
 

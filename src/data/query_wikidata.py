@@ -100,6 +100,8 @@ def main():
         Run this script to initiate the data gathering process for the MetalExplorer project.
 
     """
+    if not os.path.isdir("config/"):
+        os.mkdir("config/")
     queries = read_from_json('config/queries.json')
     genre_results = execute_query(endpoint_url, queries['query_genre'])
     genres = parse_genre_results(genre_results)
@@ -115,6 +117,8 @@ def main():
         except Exception as e:
             print(f"Error fetching items for genre '{genre}': {e}")
     
+    if not os.path.isdir("data/raw/"):
+        os.mkdir("data/raw/")
     write_to_json(assorted_items, "data/raw/metal_item_labels.json")
 
     item_details = {}
