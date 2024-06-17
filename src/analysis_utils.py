@@ -8,6 +8,8 @@ import seaborn as sns
 
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
+from transformers import pipeline
+from wordcloud import WordCloud
 
 
 def plot_activity_years(df):
@@ -100,6 +102,27 @@ def create_crosstable_heatmap(df, x, y, n_x=20, n_y=10):
     plt.show()
     
     return cross_table
+
+
+def get_words_by_genre(df, column, genre):
+    words = df.loc[df['Genre'] == genre][column].values.tolist()
+    words = ' '.join(words)
+    return words
+
+
+def get_word_cloud(words):
+    plt.figure(figsize=(8,6), facecolor='k')
+    plt.imshow(WordCloud().generate(words))
+    plt.axis("off")
+    plt.show()
+    
+
+def get_sentiment(text, labels):
+    pipe = pipeline(model="facebook/bart-large-mnli")
+    result = pipe(text,
+        candidate_labels=labels,
+    )
+    return result
 
 
 def plot_choropleth_map(df, entity):
