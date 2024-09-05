@@ -1,5 +1,8 @@
 {
-  "query_genre": "SELECT DISTINCT ?genre WHERE {   ?genre wdt:P31 wd:Q188451;             rdfs:label ?label .    FILTER(CONTAINS(LCASE(?label), \"metal\"))   FILTER LANGMATCHES(LANG(?label), 'en')    SERVICE wikibase:label { bd:serviceParam wikibase:language \"[AUTO_LANGUAGE],en\". } } ORDER BY DESC(?bandtype) ",
-  "query_items": "SELECT ?item ?itemLabel   {{     ?item wdt:P136 wd:{genre}.       SERVICE wikibase:label {{ bd:serviceParam wikibase:language \"[AUTO_LANGUAGE],en\". }}     }}     ",
-  "query_details": "SELECT ?item ?itemLabel ?performer ?performerLabel ?publicationdate ?typeLabel ?duration      ?start ?end ?album ?albumLabel ?country ?countryLabel ?genre ?genreLabel ?member ?memberLabel ?instrument ?instrumentLabel      WHERE {{      wd:{item} wdt:P31 ?item.      OPTIONAL {{ wd:{item} wdt:P175 ?performer. }}      OPTIONAL {{ wd:{item} wdt:P577 ?publicationdate. }}      OPTIONAL {{ wd:{item} wdt:P31 ?type. }}      OPTIONAL {{ wd:{item} wdt:P2047 ?duration. }}      OPTIONAL {{ wd:{item} wdt:P136 ?genre. }}      OPTIONAL {{ wd:{item} wdt:P527 ?member. }}      OPTIONAL {{ wd:{item} wdt:P1303 ?instrument. }}      OPTIONAL {{ wd:{item} wdt:P2031 ?start. }}      OPTIONAL {{ wd:{item} wdt:P2032 ?end. }}      OPTIONAL {{ wd:{item} wdt:P361 ?album. }}      OPTIONAL {{ wd:{item} wdt:P495 ?country. }}      SERVICE wikibase:label {{ bd:serviceParam wikibase:language \"[AUTO_LANGUAGE],en\". }}     }}   "
+  "query_genre": "./config/queries/genre.txt",
+  "query_genre_filter_date": "./config/queries/genre_filter_date.txt",
+  "query_items": "./config/queries/items.txt",
+  "query_items_filter_date": "./config/queries/items_filter_date.txt",
+  "query_details": "./config/queries/item_details.txt",
+  "query_details_filter_date": "./config/queries/item_details_filter_date.txt"
 }

@@ -1,0 +1,14 @@
+cache/
+__pycache__/
+.venv/
+.env
+./data/
+
+# Jupyter Notebook
+*.ipynb_checkpoints
+
+# Cached data
+*.lock
+*.json
+*cache.*
+*.csv

@@ -29,3 +29,8 @@ def write_to_json(data: dict, file_path: str) -> None:
     """
     with open(file_path, "w") as outfile: 
         json.dump(data, outfile, indent=2, ensure_ascii=False)
+
+
+def read_text(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()

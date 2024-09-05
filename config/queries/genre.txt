@@ -1,0 +1,11 @@
+SELECT DISTINCT ?genre ?label ?change
+WHERE {   
+  ?genre wdt:P31 wd:Q188451;
+         rdfs:label ?label;
+         schema:dateModified ?change.
+         
+  FILTER(CONTAINS(LCASE(?label), "metal"))
+  FILTER(LANGMATCHES(LANG(?label), 'en'))
+  
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". } 
+}

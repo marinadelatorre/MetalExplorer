@@ -1,0 +1,17 @@
+SELECT ?item ?itemLabel ?performer ?performerLabel ?publicationdate ?typeLabel ?duration ?start ?end ?album ?albumLabel ?country ?countryLabel ?genre ?genreLabel ?member ?memberLabel ?instrument ?instrumentLabel ?emid ?mbid
+WHERE {{      wd:{item} wdt:P31 ?item.      
+        OPTIONAL {{ wd:{item} wdt:P175 ?performer. }}      
+        OPTIONAL {{ wd:{item} wdt:P577 ?publicationdate. }}      
+        OPTIONAL {{ wd:{item} wdt:P31 ?type. }}      
+        OPTIONAL {{ wd:{item} wdt:P2047 ?duration. }}      
+        OPTIONAL {{ wd:{item} wdt:P136 ?genre. }}      
+        OPTIONAL {{ wd:{item} wdt:P527 ?member. }}      
+        OPTIONAL {{ wd:{item} wdt:P1303 ?instrument. }}      
+        OPTIONAL {{ wd:{item} wdt:P2031 ?start. }}      
+        OPTIONAL {{ wd:{item} wdt:P2032 ?end. }}      
+        OPTIONAL {{ wd:{item} wdt:P361 ?album. }}      
+        OPTIONAL {{ wd:{item} wdt:P495 ?country. }}
+        OPTIONAL {{ wd:{item} wdt:P1952 ?emid. }}
+        OPTIONAL {{ wd:{item} wdt:P434 ?mbid. }}
+SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
+}}
