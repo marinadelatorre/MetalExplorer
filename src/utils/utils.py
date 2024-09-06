@@ -1,4 +1,5 @@
 import json
+import os
 
 
 def read_from_json(data_file: str) -> dict:
@@ -27,6 +28,8 @@ def write_to_json(data: dict, file_path: str) -> None:
     Returns:
         None
     """
+    if not os.path.isdir(os.path.dirname(file_path)):
+        os.makedirs(os.path.dirname(file_path))
     with open(file_path, "w") as outfile: 
         json.dump(data, outfile, indent=2, ensure_ascii=False)
 

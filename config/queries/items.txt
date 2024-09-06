@@ -1,6 +1,7 @@
-SELECT ?item ?itemLabel
+SELECT ?item ?itemLabel ?type ?typeLabel
 WHERE {{
   ?item wdt:P136 wd:{genre}.
+  ?item wdt:P31 ?type.
 
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language '[AUTO_LANGUAGE],en'. }}
 }}

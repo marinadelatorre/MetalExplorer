@@ -25,7 +25,7 @@ class WikidataQuery:
         self.query_details_filter_date = read_text(queries.get('query_details_filter_date', None))
 
 
-    def _execute_query(self) -> dict:
+    def _execute_query(self, query) -> dict:
         """
         Executes a SPARQL query against the specified endpoint URL and returns the results.
 
@@ -33,9 +33,9 @@ class WikidataQuery:
             dict: A dictionary containing the results of the SPARQL query.
         """
         project_version = read_text('VERSION').strip()
-        user_agent = "MetalProject/% %s.%s" % (project_version, sys.version_info[0], sys.version_info[1])
+        user_agent = "MetalProject/%s %s.%s" % (project_version, sys.version_info[0], sys.version_info[1])
         sparql = SPARQLWrapper(ENDPOINT_URL, agent=user_agent)
-        sparql.setQuery(self.query)
+        sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
         return sparql.query().convert()
 
@@ -50,11 +50,11 @@ class WikidataQuery:
         Returns:
             list: A list of genre values extracted from the query results.
         """
-        genres = [gnr["genre"]["value"].split("/")[-1] for gnr in genre_response["results"]["bindings"]]
+        genres = {genre["genre"]["value"].split("/")[-1]: genre["label"]["value"] for genre in genre_response["results"]["bindings"]}
         return genres
     
 
-    def _fetch_items_from_query(self, query: str, query_parameters: dict) -> dict:
+    def _fetch_items_from_query(self, query, query_parameters: dict) -> dict:
         """
         Executes a SPARQL query with the provided parameters to fetch items from Wikidata.
 
@@ -66,48 +66,36 @@ class WikidataQuery:
             dict: A dictionary containing the results of the SPARQL query, with item identifiers as keys.
         """
         query = query.format(**query_parameters)
-        results = self._execute_query(query)
+        results = {query_parameters['item']: self._execute_query(query)} \
+            if 'item' in query_parameters.keys() \
+            else self._execute_query(query) 
         return results
     
 
-    def _parse_item_results(item_query: dict) -> dict:
+    def _parse_item_results(self, items_response: dict) -> dict:
         """
         Extracts item details from the results of an item query.
 
         Args:
-            item_query (dict): The query results containing item information.
+            items_response (dict): The query results containing item information.
 
         Returns:
             dict: A dictionary of item identifiers mapped to their corresponding details.
         """
-        item_result = {item["item"]["value"].split("/")[-1]: item["itemLabel"]["value"] for item in item_query["results"]["bindings"]}
+        item_result = {item["typeLabel"]["value"]: {} for item in items_response["results"]["bindings"]}
+        [item_result[item["typeLabel"]["value"]].update({item["item"]["value"].split("/")[-1]: item["itemLabel"]["value"]}) \
+            for item in items_response["results"]["bindings"]]
         return item_result
-
-
-    def _fetch_item_details(self, item_query: str, query_parameters: dict):
-        """
-        Executes a SPARQL query for a specific item from Wikidata based on the provided parameters.
-
-        Args:
-            item_query (str): The SPARQL query to execute for fetching details of the item.
-            query_parameters (dict): A dictionary containing parameters to be substituted into 
-            the query, including the identifier of the item for which details are to be fetched.
-
-        Returns:
-            dict: A dictionary containing the fetched details of the item, with the item identifier as the key.
-        """
-        query = item_query.format(**query_parameters)
-        details = {query_parameters['item']: self._execute_query(query)}
-        return details
     
 
-    def get_genres(self) -> list:
-        genre_response = self._execute_query()
+    def get_genres(self, save=True) -> list:
+        genre_response = self._execute_query(self.query_genre)
         self.genres = self._parse_genre_results(genre_response)
+        write_to_json(self.genres, 'data/raw/genres.json') if save else None
         return self.genres
 
 
-    def get_item_labels_by_genre(self, genre):
+    def _get_item_labels_by_genre(self, genre):
         genre_items = {}
         try:
             items = self._fetch_items_from_query(self.query_items, {'genre': genre})
@@ -120,16 +108,24 @@ class WikidataQuery:
         return items
     
 
-    def get_all_item_labels(self):
-        self.all_items = {genre: self.get_items_by_genre(genre) for genre in tqdm(self.genres, total=len(self.genres))}
+    def get_all_item_labels(self, save=True):
+        self.all_items = {}
+        {self.all_items.update(self._get_item_labels_by_genre(genre)) \
+                          for genre in tqdm(list(self.genres.keys()), total=len(self.genres))}
+        # self.all_items = {self._get_item_labels_by_genre(genre) \
+        #                   for genre in tqdm(list(self.genres.keys()), total=len(self.genres))}
+        
+        [write_to_json(item, f"data/raw/{type_label}/item_labels.json") \
+            for type_label, item in self.all_items.items()] \
+            if save else None
         return self.all_items
 
 
-    def get_items_details(self, items):
+    def _get_details_by_type(self, items):
         item_details = {}
         for item, label in tqdm(items.items(), total=len(items)): 
             try:
-                details = self._fetch_item_details(self.query_details, {'item': item})
+                details = self._fetch_items_from_query(self.query_details, {'item': item})
                 item_details.update({label: details})
             except urllib.error.HTTPError as e:
                 print(f"HTTP Error fetching details for item '{item}': {e}")
@@ -138,9 +134,12 @@ class WikidataQuery:
         return item_details
 
 
-    def get_all_items_details(self):
+    def get_all_items_details(self, save=True):
         self.all_items_details = {
-            genre: self.get_items_details(items)
-            for genre, items in self.all_items.items()
+            type_label: self._get_details_by_type(items)
+            for type_label, items in self.all_items.items()
         }
+        [write_to_json(item, f"data/raw/{type_label}/items_details.json") \
+            for type_label, item in self.all_items_details.items()] \
+            if save else None
         return self.all_items_details
