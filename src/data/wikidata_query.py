@@ -123,7 +123,7 @@ class WikidataQuery:
                           for genre in tqdm(list(self.genres.keys()), \
                                             total=len(self.genres), \
                                             desc="Fetching items by genre")}
-        print("Total number of items", len(self.all_items))
+
         write_to_json(self.all_items, f"data/raw/wikidata_all_item_labels.json")
         self._clean_item_labels()
         
@@ -133,9 +133,9 @@ class WikidataQuery:
         return self.all_items
 
 
-    def _get_details_by_type(self, items):
+    def _get_details_by_type(self, items, type_label):
         item_details = {}
-        for item, label in tqdm(items.items(), total=len(items), desc="Fetching item details"): 
+        for item, label in tqdm(items.items(), total=len(items), desc=f"Fetching {type_label} details"): 
             try:
                 details = self._fetch_items_from_query(self.query_details, {'item': item})
                 item_details.update({label: details})
@@ -148,7 +148,7 @@ class WikidataQuery:
 
     def get_all_items_details(self, save=True):
         self.all_items_details = {
-            type_label: self._get_details_by_type(items)
+            type_label: self._get_details_by_type(items, type_label)
             for type_label, items in self.all_items.items()
         }
         [write_to_json(item, f"data/raw/{type_label}/wikidata_items_details.json") \
