@@ -37,3 +37,7 @@ def write_to_json(data: dict, file_path: str) -> None:
 def read_text(file_path):
     with open(file_path, 'r') as file:
         return file.read()
+
+
+def is_cached_result(response):
+    return getattr(response, 'from_cache', False)
