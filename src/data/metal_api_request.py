@@ -4,7 +4,7 @@ import requests_cache
 import time
 
 from tqdm import tqdm
-from utils.utils import read_text, write_to_json
+from utils.utils import read_text, write_to_json, is_cached_result
 
 
 PROJECT_VERSION = read_text('VERSION').strip()
@@ -27,29 +27,26 @@ class MetalAPIRequest:
         response = requests.get(f'https://metal-api.dev/{endpoint}/{id}', headers=HEADERS)
         
         if response.status_code != 200:
-            print(f"Error {response.status_code} for endpoint: {endpoint}, id: {id}")
+            print(f"""{response.status_code}: {json.loads(response.text)['title']} 
+                  Endpoint: {endpoint}, id: {id}""")
             return None            
 
-        data = json.loads(response._content)
-        return data
-    
-
-    def _is_cached_result(self, response):
-        return getattr(response, 'from_cache', False)
+        return response
     
 
     def _get_data_by_category(self, category):
-        category_responses = []
+        category_data = []
 
         for id in tqdm(self.ids[category], total=len(self.ids[category]), \
                        desc=f"Fetching data for {category}s"):
             response = self._request_from_api(f'{category}s', id)
-            category_responses.append(response) if response else None
-            write_to_json(response, f'data/raw/{category}/metal_api/{id}.json') \
+            data = json.loads(response.text) if response else None
+            category_data.append(data) if response else None
+            write_to_json(data, f'data/raw/{category}/metal_api/{id}.json') \
                 if self.save_data and response else None
-            time.sleep(2) if not self._is_cached_result(response) else None
+            time.sleep(2) if not is_cached_result(response) else None
 
-        return category_responses
+        return category_data
 
 
     def get_data(self):
